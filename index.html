@@ -1,96 +1,600 @@
-export default function BulkQRCodeGeneratorApp() { return ( <div className="min-h-screen bg-gray-100 p-6"> <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-xl p-6"> <h1 className="text-3xl font-bold mb-4">Bulk QR Code Generator for A4 Printing</h1> <p className="mb-6 text-gray-600"> This app allows you to paste bulk text or numbers, generate QR codes, arrange them on an A4 sheet, and print/download for cutting and pasting. </p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFM QR Code Generator — ACJM Baghpat</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ─── CSS Variables ─── */
+  :root {
+    --navy:    #0d1b2a;
+    --navy2:   #162032;
+    --steel:   #1e3a52;
+    --accent:  #e8a020;
+    --accent2: #f0b840;
+    --text:    #e8edf2;
+    --muted:   #8aa0b4;
+    --border:  #2a4260;
+    --white:   #ffffff;
+    --danger:  #e05252;
+    --green:   #3ecf8e;
+  }
 
-<div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
-      <h2 className="text-xl font-semibold mb-2">Features</h2>
-      <ul className="list-disc pl-5 space-y-2 text-gray-700">
-        <li>Paste multiple values (one per line)</li>
-        <li>Generate QR codes in bulk</li>
-        <li>Arrange QR codes in printable A4 layout</li>
-        <li>Print directly from browser</li>
-        <li>Useful for labels, file tracking, court files, and stickers</li>
-      </ul>
-    </div>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    <div className="bg-gray-50 rounded-2xl p-4 border mb-6">
-      <h2 className="text-xl font-semibold mb-3">How to Build This App (Step-by-Step)</h2>
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--navy);
+    color: var(--text);
+    min-height: 100vh;
+  }
 
-      <div className="space-y-4 text-gray-700">
-        <div>
-          <h3 className="font-bold">1. Create React App</h3>
-          <pre className="bg-black text-green-400 p-3 rounded-xl overflow-auto text-sm">
+  /* ─── Header ─── */
+  header {
+    background: var(--navy2);
+    border-bottom: 2px solid var(--accent);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .header-icon {
+    width: 42px; height: 42px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  header h1 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--white);
+  }
+  header p {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .header-badge {
+    margin-left: auto;
+    background: var(--steel);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+  }
 
-{npx create-next-app qr-generator-app cd qr-generator-app} </pre> </div>
+  /* ─── Layout ─── */
+  .app {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: calc(100vh - 70px);
+  }
 
-<div>
-          <h3 className="font-bold">2. Install QR Library</h3>
-          <pre className="bg-black text-green-400 p-3 rounded-xl overflow-auto text-sm">
+  /* ─── Sidebar ─── */
+  .sidebar {
+    background: var(--navy2);
+    border-right: 1px solid var(--border);
+    padding: 24px 20px;
+    overflow-y: auto;
+  }
 
-{npm install qrcode.react} </pre> </div>
+  .section-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
 
-<div>
-          <h3 className="font-bold">3. Replace Code in page.tsx or App.js</h3>
-          <pre className="bg-black text-green-400 p-3 rounded-xl overflow-auto text-sm whitespace-pre-wrap">
+  .field { margin-bottom: 20px; }
+  label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-weight: 400;
+  }
+  label span { color: var(--text); font-weight: 600; }
 
-{`"use client";
+  textarea {
+    width: 100%;
+    height: 160px;
+    background: var(--navy);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    padding: 10px 12px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.6;
+  }
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
 
-import { useState } from "react"; import { QRCodeCanvas } from "qrcode.react";
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    background: var(--navy);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: var(--accent); }
 
-export default function QRGenerator() { const [input, setInput] = useState("");
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+    height: 6px;
+    margin-top: 4px;
+  }
 
-const qrItems = input .split("\n") .map((item) => item.trim()) .filter(Boolean);
+  .range-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .range-val {
+    min-width: 48px;
+    text-align: right;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--accent2);
+    font-weight: 600;
+  }
 
-const printPage = () => { window.print(); };
+  select {
+    width: 100%;
+    background: var(--navy);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.82rem;
+    padding: 9px 12px;
+    outline: none;
+    cursor: pointer;
+  }
 
-return ( <div className="p-6 bg-gray-100 min-h-screen"> <div className="max-w-6xl mx-auto bg-white p-6 rounded-2xl shadow-lg"> <h1 className="text-3xl font-bold mb-4"> Bulk QR Generator for A4 Sheet </h1>
+  .hint {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 5px;
+    line-height: 1.4;
+  }
 
-<textarea
-      rows={8}
-      placeholder="Paste one value per line"
-      value={input}
-      onChange={(e) => setInput(e.target.value)}
-      className="w-full border rounded-xl p-4 mb-4"
-    />
+  /* ─── Buttons ─── */
+  .btn {
+    width: 100%;
+    padding: 11px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: all 0.18s;
+    letter-spacing: 0.02em;
+    margin-bottom: 10px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--navy);
+  }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-print {
+    background: var(--green);
+    color: var(--navy);
+  }
+  .btn-print:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-danger {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--danger);
+  }
+  .btn-danger:hover { border-color: var(--danger); background: rgba(224,82,82,0.08); }
 
-    <button
-      onClick={printPage}
-      className="bg-blue-600 text-white px-6 py-3 rounded-xl mb-6"
-    >
-      Print A4 Sheet
-    </button>
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 18px 0;
+  }
 
-    <div className="grid grid-cols-4 gap-4 print:grid-cols-4">
-      {qrItems.map((item, index) => (
-        <div
-          key={index}
-          className="border p-3 rounded-lg flex flex-col items-center"
-        >
-          <QRCodeCanvas value={item} size={120} />
-          <p className="mt-2 text-sm text-center break-all">{item}</p>
-        </div>
-      ))}
-    </div>
+  .counter {
+    background: var(--steel);
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+  .counter-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .counter-label { font-size: 0.72rem; color: var(--muted); }
+
+  /* ─── Preview Panel ─── */
+  .preview-panel {
+    padding: 24px;
+    overflow-y: auto;
+    background: var(--navy);
+  }
+  .preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .preview-title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  #qr-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 20px;
+    background: var(--navy2);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    min-height: 180px;
+    align-content: flex-start;
+  }
+
+  .qr-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--white);
+    border-radius: 6px;
+    padding: 10px 8px 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    transition: transform 0.15s;
+    cursor: default;
+  }
+  .qr-card:hover { transform: scale(1.04); }
+  .qr-card canvas, .qr-card img { display: block; }
+  .qr-label {
+    margin-top: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #111;
+    text-align: center;
+    word-break: break-all;
+    max-width: 120px;
+    line-height: 1.3;
+  }
+
+  .empty-state {
+    width: 100%;
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-state .big-icon { font-size: 3rem; margin-bottom: 12px; }
+  .empty-state p { font-size: 0.85rem; }
+
+  /* ─── Toast ─── */
+  #toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: var(--navy2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.82rem;
+    padding: 10px 18px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.25s;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ─── PRINT STYLES ─── */
+  @media print {
+    @page { size: A4; margin: 10mm; }
+
+    body, html { background: white !important; }
+    header, .sidebar, .preview-panel > .preview-header,
+    #toast { display: none !important; }
+
+    .app { display: block !important; }
+    .preview-panel { padding: 0 !important; background: white !important; }
+
+    #qr-grid {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: var(--print-gap, 6mm) !important;
+      background: white !important;
+      border: none !important;
+      border-radius: 0 !important;
+      padding: 0 !important;
+    }
+
+    .qr-card {
+      background: white !important;
+      box-shadow: none !important;
+      border: 0.5pt solid #ccc !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+    .qr-card:hover { transform: none !important; }
+    .qr-label { color: #000 !important; }
+    .empty-state { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-icon">🔲</div>
+  <div>
+    <h1>CFM QR Code Generator</h1>
+    <p>ACJM Baghpat District Court · Court File Manager</p>
   </div>
+  <div class="header-badge">A4 Print Ready</div>
+</header>
+
+<div class="app">
+
+  <!-- ─── SIDEBAR ─── -->
+  <aside class="sidebar">
+
+    <!-- File Numbers Input -->
+    <div class="section-label">File Numbers</div>
+
+    <div class="field">
+      <label>Enter file numbers <span>(one per line)</span></label>
+      <textarea id="fileInput" placeholder="1/2024&#10;2/2024&#10;3/2024&#10;CR/45/2023&#10;..."></textarea>
+      <div class="hint">One file number per line. Blank lines are skipped.</div>
+    </div>
+
+    <div class="field">
+      <label>Optional Prefix <span>(prepended to each)</span></label>
+      <input type="text" id="prefix" placeholder="e.g. ACJM/BAG/ or leave blank">
+      <div class="hint">Will appear in QR data and label.</div>
+    </div>
+
+    <div class="counter">
+      <div>
+        <div class="counter-num" id="count-display">0</div>
+        <div class="counter-label">QR codes to generate</div>
+      </div>
+      <div style="font-size:1.6rem">📋</div>
+    </div>
+
+    <button class="btn btn-primary" onclick="generate()">⚡ Generate QR Codes</button>
+    <button class="btn btn-danger" onclick="clearAll()">🗑 Clear All</button>
+
+    <hr class="divider">
+
+    <!-- Size & Layout Controls -->
+    <div class="section-label">Size &amp; Layout</div>
+
+    <div class="field">
+      <label>QR Code Size — <span id="sizeLabel">35mm</span></label>
+      <div class="range-row">
+        <input type="range" id="qrSize" min="20" max="65" value="35" step="1" oninput="onSizeChange()">
+        <span class="range-val" id="sizeVal">35mm</span>
+      </div>
+      <div class="hint">Actual print size on A4 sheet (20mm–65mm).</div>
+    </div>
+
+    <div class="field">
+      <label>Error Correction</label>
+      <select id="eccLevel">
+        <option value="L">L — Low (7%) — Compact</option>
+        <option value="M" selected>M — Medium (15%) — Balanced</option>
+        <option value="Q">Q — Quality (25%) — Robust</option>
+        <option value="H">H — High (30%) — Damaged-proof</option>
+      </select>
+      <div class="hint">Higher = better scan after damage, slightly larger.</div>
+    </div>
+
+    <div class="field">
+      <label>Label Font Size — <span id="fontLabel">8pt</span></label>
+      <div class="range-row">
+        <input type="range" id="fontSize" min="5" max="14" value="8" step="1" oninput="onFontChange()">
+        <span class="range-val" id="fontVal">8pt</span>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Print -->
+    <div class="section-label">Print</div>
+    <button class="btn btn-print" onclick="printSheet()">🖨 Print A4 Sheet</button>
+    <div class="hint" style="margin-top:-6px">Opens print dialog. Set paper = A4, no scaling.</div>
+
+  </aside>
+
+  <!-- ─── PREVIEW ─── -->
+  <main class="preview-panel">
+    <div class="preview-header">
+      <div class="preview-title">Preview — Screen</div>
+      <div style="font-size:0.75rem; color:var(--muted);">Hover to zoom · Print for cut sheets</div>
+    </div>
+
+    <div id="qr-grid">
+      <div class="empty-state">
+        <div class="big-icon">📂</div>
+        <p>Enter file numbers in the sidebar<br>and click <strong>Generate QR Codes</strong></p>
+      </div>
+    </div>
+  </main>
 </div>
 
-); }`} </pre> </div>
+<!-- Toast -->
+<div id="toast"></div>
 
-<div>
-          <h3 className="font-bold">4. Run App</h3>
-          <pre className="bg-black text-green-400 p-3 rounded-xl overflow-auto text-sm">
+<script>
+  /* ── Helpers ── */
+  let currentPxSize = 132; // ~35mm at 96dpi
+  let currentFontPt = 8;
 
-{npm run dev} </pre> </div> </div> </div>
+  function mmToPx(mm) { return Math.round(mm * 3.7795275591); }
+  function showToast(msg, dur = 2200) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), dur);
+  }
 
-<div className="bg-green-50 border border-green-200 rounded-2xl p-4">
-      <h2 className="text-xl font-semibold mb-2">Best Use Cases</h2>
-      <ul className="list-disc pl-5 text-gray-700 space-y-2">
-        <li>Court file tracking QR stickers</li>
-        <li>Inventory labels</li>
-        <li>Document tracking</li>
-        <li>Case ID barcode/QR labels</li>
-        <li>Bulk printable office labels</li>
-      </ul>
-    </div>
-  </div>
-</div>
+  /* ── Size controls ── */
+  function onSizeChange() {
+    const mm = +document.getElementById('qrSize').value;
+    document.getElementById('sizeLabel').textContent = mm + 'mm';
+    document.getElementById('sizeVal').textContent   = mm + 'mm';
+  }
+  function onFontChange() {
+    const pt = +document.getElementById('fontSize').value;
+    document.getElementById('fontLabel').textContent = pt + 'pt';
+    document.getElementById('fontVal').textContent   = pt + 'pt';
+  }
 
-); }
+  /* ── Live count update ── */
+  document.getElementById('fileInput').addEventListener('input', updateCount);
+  function updateCount() {
+    const lines = getLines();
+    document.getElementById('count-display').textContent = lines.length;
+  }
+  function getLines() {
+    return document.getElementById('fileInput').value
+      .split('\n')
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+  }
+
+  /* ── QR ECC map ── */
+  const ECC = { L: QRCode.CorrectLevel.L, M: QRCode.CorrectLevel.M,
+                Q: QRCode.CorrectLevel.Q, H: QRCode.CorrectLevel.H };
+
+  /* ── GENERATE ── */
+  function generate() {
+    const lines   = getLines();
+    if (!lines.length) { showToast('⚠ Enter at least one file number'); return; }
+
+    const prefix  = document.getElementById('prefix').value.trim();
+    const mm      = +document.getElementById('qrSize').value;
+    const pxSize  = mmToPx(mm);
+    const fontPt  = +document.getElementById('fontSize').value;
+    const ecc     = ECC[document.getElementById('eccLevel').value];
+
+    currentPxSize = pxSize;
+    currentFontPt = fontPt;
+
+    const grid = document.getElementById('qr-grid');
+    grid.innerHTML = '';
+
+    // set CSS variable for print gap
+    document.documentElement.style.setProperty('--print-gap', '5mm');
+
+    lines.forEach(num => {
+      const fullText = prefix + num;
+      const card = document.createElement('div');
+      card.className = 'qr-card';
+
+      const qrDiv = document.createElement('div');
+      card.appendChild(qrDiv);
+
+      new QRCode(qrDiv, {
+        text:          fullText,
+        width:         pxSize,
+        height:        pxSize,
+        correctLevel:  ecc,
+        colorDark:     '#000000',
+        colorLight:    '#ffffff',
+      });
+
+      const lbl = document.createElement('div');
+      lbl.className  = 'qr-label';
+      lbl.textContent = fullText;
+      lbl.style.fontSize  = fontPt + 'pt';
+      lbl.style.maxWidth  = pxSize + 'px';
+      card.appendChild(lbl);
+
+      // set card padding proportional
+      const pad = Math.max(4, Math.round(pxSize * 0.07));
+      card.style.padding = `${pad}px ${pad}px ${Math.round(pad*0.7)}px`;
+
+      grid.appendChild(card);
+    });
+
+    showToast(`✅ ${lines.length} QR code${lines.length > 1 ? 's' : ''} generated`);
+  }
+
+  /* ── CLEAR ── */
+  function clearAll() {
+    document.getElementById('fileInput').value = '';
+    document.getElementById('prefix').value = '';
+    document.getElementById('qr-grid').innerHTML = `
+      <div class="empty-state">
+        <div class="big-icon">📂</div>
+        <p>Enter file numbers in the sidebar<br>and click <strong>Generate QR Codes</strong></p>
+      </div>`;
+    document.getElementById('count-display').textContent = '0';
+    showToast('Cleared');
+  }
+
+  /* ── PRINT ── */
+  function printSheet() {
+    const cards = document.querySelectorAll('.qr-card');
+    if (!cards.length) { showToast('⚠ Generate QR codes first'); return; }
+    window.print();
+  }
+
+  /* Initial count */
+  updateCount();
+</script>
+</body>
+</html>
